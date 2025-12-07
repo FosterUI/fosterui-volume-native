@@ -1,0 +1,28 @@
+query Input {
+  cart {
+    lines {
+      id
+      quantity
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          product {
+            # The Bridge: Fetching the custom Metafield
+            volumeDiscount: metafield(namespace: "custom", key: "volume_discount_ref") {
+              # Following the reference to the Metaobject
+              reference {
+                ... on Metaobject {
+                  # Getting the raw JSON string
+                  tiers: field(key: "tiers") {
+                    value
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
