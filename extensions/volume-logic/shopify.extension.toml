@@ -21,3 +21,9 @@ description = "t:description"
   command = "cargo build --target=wasm32-unknown-unknown --release"
   path = "target/wasm32-unknown-unknown/release/volume-logic.wasm"
   watch = [ "src/**/*.rs" ]
+
+[ui]
+enable_create = true
+
+[ui.paths]
+create = "/app/volume-logic"
