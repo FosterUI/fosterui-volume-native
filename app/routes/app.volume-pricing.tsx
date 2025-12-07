@@ -75,18 +75,13 @@ export default function VolumeLogic() {
     };
 
     return (
-        <s-page
-            heading="Create Native Volume Discount"
-            primaryAction={{
-                content: "Save",
-                onAction: handleSave,
-                loading: isSaving,
-            }}
-            backAction={{
-                content: "Discounts",
-                onAction: () => navigate("/app"),
-            }}
-        >
+        <s-page heading="Create Native Volume Discount">
+            <ui-title-bar title="Create Native Volume Discount">
+                <button variant="primary" onClick={handleSave} disabled={isSaving}>
+                    Save
+                </button>
+                <button onClick={() => navigate("/app")}>Discounts</button>
+            </ui-title-bar>
             <s-section heading="Volume Discount Configuration">
                 <s-paragraph>
                     This will create an automatic discount powered by your volume pricing
@@ -95,7 +90,7 @@ export default function VolumeLogic() {
                 </s-paragraph>
 
                 {!functionId && (
-                    <s-banner status="warning">
+                    <s-banner tone="warning">
                         Function ID not found. Please run <code>npm run deploy</code> first,
                         then restart the dev server.
                     </s-banner>
