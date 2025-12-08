@@ -10,6 +10,12 @@ import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+    const url = new URL(request.url);
+    console.log("\n========================================");
+    console.log("🎯 HIT: app.volume-pricing.tsx LOADER");
+    console.log("📍 URL:", url.pathname + url.search);
+    console.log("========================================\n");
+
     await authenticate.admin(request);
 
     return {

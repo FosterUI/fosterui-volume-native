@@ -6,6 +6,12 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const url = new URL(request.url);
+  console.log("\n----------------------------------------");
+  console.log("📦 HIT: app.tsx (PARENT LAYOUT) LOADER");
+  console.log("📍 URL:", url.pathname + url.search);
+  console.log("----------------------------------------\n");
+
   await authenticate.admin(request);
 
   // eslint-disable-next-line no-undef
