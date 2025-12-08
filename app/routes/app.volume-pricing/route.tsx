@@ -9,28 +9,102 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.log("[volume-pricing] Loader called, URL:", request.url);
-    await authenticate.admin(request);
+    const { admin } = await authenticate.admin(request);
 
-    const functionId = process.env.SHOPIFY_VOLUME_LOGIC_ID;
+    // First try environment variable (set by Shopify CLI during dev)
+    let functionId = process.env.SHOPIFY_VOLUME_LOGIC_ID;
     console.log("[volume-pricing] Function ID from env:", functionId);
+
+    // If not found, query for it via GraphQL
+    if (!functionId) {
+        console.log("[volume-pricing] Fetching function ID via GraphQL...");
+        try {
+            const response = await admin.graphql(
+                `#graphql
+                query GetShopifyFunctions {
+                    shopifyFunctions(first: 25) {
+                        nodes {
+                            id
+                            title
+                            apiType
+                            app {
+                                title
+                            }
+                        }
+                    }
+                }`
+            );
+            const data = await response.json();
+            console.log("[volume-pricing] Functions response:", JSON.stringify(data, null, 2));
+
+            // Find our function by looking for the volume-logic function
+            const functions = data.data?.shopifyFunctions?.nodes || [];
+            const volumeFunction = functions.find((fn: { title?: string; apiType?: string }) =>
+                fn.title?.toLowerCase().includes("volume") ||
+                fn.apiType === "product_discounts"
+            );
+
+            if (volumeFunction) {
+                console.log("[volume-pricing] Found function ID:", volumeFunction.id);
+                functionId = volumeFunction.id;
+            }
+        } catch (error) {
+            console.error("[volume-pricing] Error fetching functions:", error);
+        }
+    }
 
     return {
         functionId,
     };
 };
 
+// Helper to fetch function ID via GraphQL
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getFunctionId(admin: any): Promise<string | null> {
+    // First try environment variable
+    const functionId = process.env.SHOPIFY_VOLUME_LOGIC_ID;
+    if (functionId) return functionId;
+
+    // Query via GraphQL
+    try {
+        const response = await admin.graphql(
+            `#graphql
+            query GetShopifyFunctions {
+                shopifyFunctions(first: 25) {
+                    nodes {
+                        id
+                        title
+                        apiType
+                    }
+                }
+            }`
+        );
+        const data = await response.json();
+        const functions = data.data?.shopifyFunctions?.nodes || [];
+        const volumeFunction = functions.find((fn: { title?: string; apiType?: string }) =>
+            fn.title?.toLowerCase().includes("volume") ||
+            fn.apiType === "product_discounts"
+        );
+        return volumeFunction?.id || null;
+    } catch (error) {
+        console.error("[volume-pricing] Error fetching functions:", error);
+        return null;
+    }
+}
+
 export const action = async ({ request }: ActionFunctionArgs) => {
     console.log("[volume-pricing] Action called");
     const { admin } = await authenticate.admin(request);
-    const functionId = process.env.SHOPIFY_VOLUME_LOGIC_ID;
+    const functionId = await getFunctionId(admin);
 
     console.log("[volume-pricing] Function ID:", functionId);
 
     if (!functionId) {
         console.error("[volume-pricing] ERROR: Function ID not configured");
-        return { success: false, error: "Function ID not configured" };
+        return { success: false, error: "Function ID not found. Please deploy the extension first." };
     }
 
     try {
@@ -57,6 +131,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                         title: "Volume Discount",
                         functionId: functionId,
                         startsAt: new Date().toISOString(),
+                        discountClasses: ["PRODUCT"],
                     },
                 },
             }
@@ -168,7 +243,7 @@ export default function VolumeLogic() {
 
                 {fetcher.data?.success && (
                     <s-banner tone="success">
-                        Discount "{fetcher.data.title}" created successfully! Redirecting...
+                        Discount &quot;{fetcher.data.title}&quot; created successfully! Redirecting...
                     </s-banner>
                 )}
             </s-section>
