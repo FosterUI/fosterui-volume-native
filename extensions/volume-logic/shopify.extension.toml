@@ -22,9 +22,10 @@ description = "t:description"
   path = "target/wasm32-unknown-unknown/release/volume-logic.wasm"
   watch = [ "src/**/*.rs" ]
 
-  [extensions.ui]
+[ui]
   enable_create = true
+  handle = "volume-logic"
 
-  [extensions.ui.paths]
-  create = "/app/volume-pricing"
-  details = "/app/volume-pricing"
+[ui.paths]
+  create = "/app/volume-pricing/" 
+  details = "/app/volume-pricing/"
