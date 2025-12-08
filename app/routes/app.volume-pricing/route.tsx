@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type {
     ActionFunctionArgs,
     HeadersFunction,
@@ -100,7 +100,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const { admin } = await authenticate.admin(request);
     const functionId = await getFunctionId(admin);
 
+    // Get form data
+    const formData = await request.formData();
+    const title = formData.get("title") as string || `Volume Discount ${Date.now()}`;
+
     console.log("[volume-pricing] Function ID:", functionId);
+    console.log("[volume-pricing] Title:", title);
 
     if (!functionId) {
         console.error("[volume-pricing] ERROR: Function ID not configured");
@@ -128,7 +133,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             {
                 variables: {
                     discount: {
-                        title: "Volume Discount",
+                        title: title,
                         functionId: functionId,
                         startsAt: new Date().toISOString(),
                         discountClasses: ["PRODUCT"],
@@ -177,6 +182,7 @@ export default function VolumeLogic() {
     const fetcher = useFetcher<ActionData>();
     const navigate = useNavigate();
     const shopify = useAppBridge();
+    const [title, setTitle] = useState("");
 
     const isLoading = fetcher.state === "submitting" || fetcher.state === "loading";
 
@@ -199,7 +205,7 @@ export default function VolumeLogic() {
 
     const handleSave = () => {
         console.log("[volume-pricing] Save clicked, submitting...");
-        fetcher.submit({}, { method: "POST" });
+        fetcher.submit({ title: title || `Volume Discount ${Date.now()}` }, { method: "POST" });
     };
 
     return (
@@ -216,6 +222,16 @@ export default function VolumeLogic() {
                     function. The discount will apply based on the quantity thresholds
                     defined in your function logic.
                 </s-paragraph>
+
+                <s-box padding-block-end="base">
+                    <s-text-field
+                        label="Discount Title"
+                        value={title}
+                        onInput={(e: { currentTarget: { value: string } }) => setTitle(e.currentTarget.value)}
+                        placeholder="e.g., Buy 5+ Get 10% Off"
+                        help-text="Enter a unique name for this discount"
+                    />
+                </s-box>
 
                 {!functionId && (
                     <s-banner tone="warning">
